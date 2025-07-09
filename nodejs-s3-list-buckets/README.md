@@ -1,6 +1,6 @@
-# Alibaba Cloud OSS Bucket Lister
+# Alibaba Cloud OSS Bucket Explorer
 
-This Node.js script uses the AWS S3 SDK to list buckets in Alibaba Cloud OSS (Object Storage Service).
+This Node.js script uses the AWS S3 SDK to list buckets in Alibaba Cloud OSS (Object Storage Service) and explore their contents. It allows you to select a bucket and view objects that have been modified in the last 7 days.
 
 ## Setup
 
@@ -30,14 +30,30 @@ This Node.js script uses the AWS S3 SDK to list buckets in Alibaba Cloud OSS (Ob
    node list-alibaba-buckets.js
    ```
 
+4. Follow the interactive prompts:
+   - The script will list all available buckets
+   - Enter the number of the bucket you want to explore
+   - View objects modified in the last 7 days
+
+## Features
+
+- **List all buckets** in your Alibaba Cloud account
+- **Interactive bucket selection** using a simple menu
+- **View recent objects** - automatically filters objects modified in the last 7 days
+- **Pagination support** for buckets with many objects
+- **Human-readable file sizes** and timestamps
+- **SSL certificate handling** for Windows environments
+
 ## How it Works
 
 Alibaba Cloud OSS provides an S3-compatible API, which allows us to use the AWS SDK with a custom endpoint configuration. The script:
 
 1. Configures the AWS S3 client with Alibaba Cloud OSS endpoint
 2. Uses `forcePathStyle: true` for compatibility
-3. Sends a ListBuckets command to retrieve all buckets
-4. Displays bucket names and creation dates
+3. Lists all available buckets with creation dates
+4. Allows user to select a bucket interactively
+5. Retrieves and filters objects modified in the last 7 days
+6. Displays objects sorted by last modified date (newest first)
 
 ## Requirements
 
