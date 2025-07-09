@@ -49,7 +49,7 @@ This Node.js script uses the AWS S3 SDK to list buckets in Alibaba Cloud OSS (Ob
 Alibaba Cloud OSS provides an S3-compatible API, which allows us to use the AWS SDK with a custom endpoint configuration. The script:
 
 1. Configures the AWS S3 client with Alibaba Cloud OSS endpoint
-2. Uses `forcePathStyle: true` for compatibility
+2. Uses virtual hosted-style URLs (`<bucket>.<endpoint>/<object>`) as required by Alibaba Cloud
 3. Lists all available buckets with creation dates
 4. Allows user to select a bucket interactively
 5. Retrieves and filters objects modified in the last 7 days

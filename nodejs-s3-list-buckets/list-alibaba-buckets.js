@@ -30,6 +30,7 @@ const httpsAgent = new https.Agent({
 });
 
 // Create S3 client with Alibaba Cloud OSS configuration
+// Alibaba Cloud OSS uses virtual hosted-style URLs: <bucket>.<endpoint>/<object>
 const s3Client = new S3Client({
   credentials: {
     accessKeyId: config.accessKeyId,
@@ -37,7 +38,7 @@ const s3Client = new S3Client({
   },
   endpoint: config.endpoint,
   region: 'oss-cn-hangzhou', // This can be any value, as Alibaba OSS doesn't use AWS regions
-  forcePathStyle: true, // Required for Alibaba Cloud OSS compatibility
+  forcePathStyle: false, // Use virtual hosted-style URLs for Alibaba Cloud OSS
   requestHandler: {
     httpsAgent: httpsAgent,
   },
