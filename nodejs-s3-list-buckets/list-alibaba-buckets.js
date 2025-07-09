@@ -1,4 +1,5 @@
 const { S3Client, ListBucketsCommand } = require('@aws-sdk/client-s3');
+const https = require('https');
 
 // Configuration for Alibaba Cloud OSS
 const config = {
@@ -15,7 +16,17 @@ const config = {
   // - oss-ap-southeast-1.aliyuncs.com (Singapore)
   // - oss-us-west-1.aliyuncs.com (US - Silicon Valley)
   endpoint: process.env.ALIBABA_OSS_ENDPOINT || 'https://oss-cn-hangzhou.aliyuncs.com',
+  
+  // SSL/TLS configuration
+  // Set NODE_TLS_REJECT_UNAUTHORIZED=0 to disable certificate validation (NOT recommended for production)
+  // Or set ALIBABA_DISABLE_SSL=true to disable SSL validation for this script only
+  disableSSL: process.env.ALIBABA_DISABLE_SSL === 'true',
 };
+
+// Create HTTPS agent with custom options
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: !config.disableSSL, // Disable certificate validation if configured
+});
 
 // Create S3 client with Alibaba Cloud OSS configuration
 const s3Client = new S3Client({
@@ -26,6 +37,9 @@ const s3Client = new S3Client({
   endpoint: config.endpoint,
   region: 'oss-cn-hangzhou', // This can be any value, as Alibaba OSS doesn't use AWS regions
   forcePathStyle: true, // Required for Alibaba Cloud OSS compatibility
+  requestHandler: {
+    httpsAgent: httpsAgent,
+  },
 });
 
 async function listBuckets() {
@@ -65,6 +79,14 @@ async function listBuckets() {
       console.error('\nPlease check your endpoint configuration:');
       console.error('- Ensure the endpoint URL is correct for your Alibaba Cloud region');
       console.error('- Check your internet connection');
+    } else if (error.code === 'SELF_SIGNED_CERT_IN_CHAIN' || error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+      console.error('\nSSL Certificate Error:');
+      console.error('This appears to be a self-signed certificate issue.');
+      console.error('\nTo resolve this on Windows:');
+      console.error('1. (Recommended) Export the certificate from Windows Certificate Store and use NODE_EXTRA_CA_CERTS');
+      console.error('2. (Temporary) Set environment variable: ALIBABA_DISABLE_SSL=true');
+      console.error('3. (Not recommended) Set NODE_TLS_REJECT_UNAUTHORIZED=0');
+      console.error('\nExample: set ALIBABA_DISABLE_SSL=true && node list-alibaba-buckets.js');
     }
   }
 }

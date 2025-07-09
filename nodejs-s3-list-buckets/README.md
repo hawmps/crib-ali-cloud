@@ -44,3 +44,25 @@ Alibaba Cloud OSS provides an S3-compatible API, which allows us to use the AWS 
 - Node.js 14.0.0 or higher
 - Valid Alibaba Cloud access credentials
 - Network access to Alibaba Cloud OSS endpoints
+
+## SSL Certificate Issues on Windows
+
+Node.js doesn't use the Windows certificate store by default. If you encounter a "self-signed certificate in certificate chain" error, you have several options:
+
+### Option 1: Export Certificate from Windows (Recommended)
+1. Export the certificate from Windows Certificate Store to a .pem file
+2. Set the environment variable: `set NODE_EXTRA_CA_CERTS=path\to\certificate.pem`
+3. Run the script normally
+
+### Option 2: Disable SSL Validation (Temporary/Development)
+```cmd
+set ALIBABA_DISABLE_SSL=true
+node list-alibaba-buckets.js
+```
+
+### Option 3: Global Node.js Setting (Not Recommended)
+```cmd
+set NODE_TLS_REJECT_UNAUTHORIZED=0
+node list-alibaba-buckets.js
+```
+**Warning**: This disables SSL validation globally for all Node.js connections and should not be used in production.
