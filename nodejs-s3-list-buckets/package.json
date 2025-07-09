@@ -1,0 +1,15 @@
+{
+  "name": "alibaba-oss-s3-sdk",
+  "version": "1.0.0",
+  "description": "List Alibaba Cloud OSS buckets using AWS S3 SDK",
+  "main": "list-alibaba-buckets.js",
+  "scripts": {
+    "start": "node list-alibaba-buckets.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.693.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
