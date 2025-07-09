@@ -1,4 +1,4 @@
-const { S3Client, ListBucketsCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+const { S3Client, ListBucketsCommand, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
 const https = require('https');
 const readline = require('readline');
 
@@ -57,6 +57,57 @@ function formatFileSize(bytes) {
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Read the first N lines of an object
+async function readObjectLines(bucketName, objectKey, numLines = 10) {
+  try {
+    console.log(`\nReading first ${numLines} lines from: ${objectKey}`);
+    console.log('-'.repeat(80));
+    
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: objectKey,
+    });
+    
+    const response = await s3Client.send(command);
+    
+    // Convert stream to string
+    const streamToString = (stream) =>
+      new Promise((resolve, reject) => {
+        const chunks = [];
+        stream.on('data', (chunk) => chunks.push(chunk));
+        stream.on('error', reject);
+        stream.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
+      });
+    
+    const bodyContents = await streamToString(response.Body);
+    
+    // Split into lines and get first N lines
+    const lines = bodyContents.split('\n');
+    const linesToShow = lines.slice(0, numLines);
+    
+    // Display the lines with line numbers
+    linesToShow.forEach((line, index) => {
+      console.log(`${(index + 1).toString().padStart(4)}: ${line}`);
+    });
+    
+    if (lines.length > numLines) {
+      console.log(`\n... (${lines.length - numLines} more lines)`);
+    }
+    
+    console.log('-'.repeat(80));
+    console.log(`Total lines in file: ${lines.length}`);
+    
+  } catch (error) {
+    console.error('\nError reading object:', error.message);
+    
+    if (error.name === 'NoSuchKey') {
+      console.error('The specified object does not exist.');
+    } else if (error.name === 'AccessDenied') {
+      console.error('Access denied. Check your permissions for this object.');
+    }
+  }
 }
 
 // List objects in a specific bucket for the last 7 days
@@ -119,6 +170,8 @@ async function listRecentObjects(bucketName) {
     console.log(`\nTotal objects scanned: ${totalObjects}`);
     console.log(`Objects from last 7 days: ${recentObjects.length}`);
     
+    return { bucketName, objects: recentObjects };
+    
   } catch (error) {
     console.error('\nError listing objects:', error.message);
     
@@ -127,6 +180,7 @@ async function listRecentObjects(bucketName) {
     } else if (error.name === 'AccessDenied') {
       console.error('Access denied. Check your permissions for this bucket.');
     }
+    return null;
   }
 }
 
@@ -212,9 +266,47 @@ async function main() {
     }
     
     const selectedBucket = buckets[bucketIndex];
-    await listRecentObjects(selectedBucket.Name);
+    const result = await listRecentObjects(selectedBucket.Name);
     
-    rl.close();
+    if (result && result.objects.length > 0) {
+      // Ask if user wants to read any object
+      rl.question('\nWould you like to read the contents of any file? (y/n): ', async (readAnswer) => {
+        if (readAnswer.toLowerCase() === 'y') {
+          // Display objects with indices
+          console.log('\nSelect a file to read:');
+          result.objects.forEach((obj, index) => {
+            console.log(`${index + 1}. ${obj.Key}`);
+          });
+          
+          rl.question('\nEnter the file number (or "q" to quit): ', async (fileAnswer) => {
+            if (fileAnswer.toLowerCase() === 'q') {
+              rl.close();
+              return;
+            }
+            
+            const fileIndex = parseInt(fileAnswer) - 1;
+            if (isNaN(fileIndex) || fileIndex < 0 || fileIndex >= result.objects.length) {
+              console.log('\nInvalid selection.');
+              rl.close();
+              return;
+            }
+            
+            const selectedObject = result.objects[fileIndex];
+            
+            // Ask how many lines to read
+            rl.question('\nHow many lines to read? (default: 10): ', async (linesAnswer) => {
+              const numLines = parseInt(linesAnswer) || 10;
+              await readObjectLines(result.bucketName, selectedObject.Key, numLines);
+              rl.close();
+            });
+          });
+        } else {
+          rl.close();
+        }
+      });
+    } else {
+      rl.close();
+    }
   });
 }
 
